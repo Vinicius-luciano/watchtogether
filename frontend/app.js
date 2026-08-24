@@ -409,7 +409,7 @@
         return;
       }
       await videoSender.replaceTrack(screenTrack);
-      await mixScreenAudio();
+      await shareScreenAudioOnly();
 
       localVideo.srcObject = screenStream;
       localVideo.hidden = false;
@@ -462,11 +462,15 @@
     shareLabel.textContent = "compartilhar tela";
   }
 
-  async function mixScreenAudio() {
+  async function shareScreenAudioOnly() {
     const screenAudioTrack = screenStream?.getAudioTracks()[0];
-    const microphoneTrack = localStream?.getAudioTracks()[0];
-    if (!screenAudioTrack || !audioSender) {
-      toast("a tela foi compartilhada sem áudio", 3000);
+    if (!audioSender) {
+      toast("conexão ainda não está pronta", 3000);
+      return;
+    }
+    if (!screenAudioTrack) {
+      await audioSender.replaceTrack(null);
+      toast("selecione uma aba e marque compartilhar áudio", 3000);
       return;
     }
 
@@ -476,14 +480,9 @@
       new MediaStream([screenAudioTrack]),
     );
     screenSource.connect(destination);
-    if (microphoneTrack) {
-      const microphoneSource = shareAudioContext.createMediaStreamSource(
-        new MediaStream([microphoneTrack]),
-      );
-      microphoneSource.connect(destination);
-    }
     mixedAudioTrack = destination.stream.getAudioTracks()[0];
     await audioSender.replaceTrack(mixedAudioTrack);
+    toast("áudio do filme sendo transmitido pelo site", 2500);
   }
 
   btnLeave.addEventListener("click", () => {
