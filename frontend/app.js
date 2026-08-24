@@ -35,6 +35,8 @@
   let localStream = null; // pode ficar null se não tiver câmera nem mic
   let remoteStream = null;
   let screenStream = null;
+  let shareAudioContext = null;
+  let mixedAudioTrack = null;
   let audioSender = null;
   let videoSender = null;
   let hasAudio = false;
@@ -407,6 +409,7 @@
         return;
       }
       await videoSender.replaceTrack(screenTrack);
+      await mixScreenAudio();
 
       localVideo.srcObject = screenStream;
       localVideo.hidden = false;
@@ -431,6 +434,18 @@
       hasVideo && localStream ? localStream.getVideoTracks()[0] : null;
     if (videoSender) {
       await videoSender.replaceTrack(cameraTrack || null);
+    }
+    if (audioSender) {
+      const microphoneTrack = localStream?.getAudioTracks()[0] || null;
+      await audioSender.replaceTrack(microphoneTrack);
+    }
+    if (shareAudioContext) {
+      await shareAudioContext.close();
+      shareAudioContext = null;
+      mixedAudioTrack = null;
+    }
+
+    if (videoSender) {
       await makeOffer();
     }
 
@@ -445,6 +460,30 @@
     sharing = false;
     btnShare.setAttribute("aria-pressed", "false");
     shareLabel.textContent = "compartilhar tela";
+  }
+
+  async function mixScreenAudio() {
+    const screenAudioTrack = screenStream?.getAudioTracks()[0];
+    const microphoneTrack = localStream?.getAudioTracks()[0];
+    if (!screenAudioTrack || !audioSender) {
+      toast("a tela foi compartilhada sem áudio", 3000);
+      return;
+    }
+
+    shareAudioContext = new AudioContext();
+    const destination = shareAudioContext.createMediaStreamDestination();
+    const screenSource = shareAudioContext.createMediaStreamSource(
+      new MediaStream([screenAudioTrack]),
+    );
+    screenSource.connect(destination);
+    if (microphoneTrack) {
+      const microphoneSource = shareAudioContext.createMediaStreamSource(
+        new MediaStream([microphoneTrack]),
+      );
+      microphoneSource.connect(destination);
+    }
+    mixedAudioTrack = destination.stream.getAudioTracks()[0];
+    await audioSender.replaceTrack(mixedAudioTrack);
   }
 
   btnLeave.addEventListener("click", () => {
