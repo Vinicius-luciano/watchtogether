@@ -46,6 +46,7 @@
   let sharing = false;
   let timerHandle = null;
   let secondsElapsed = 0;
+  const pendingIceCandidates = [];
   const fixedRoomId = "vinicius-e-dri";
 
   function showScreen(el) {
@@ -231,12 +232,20 @@
 
         case "answer":
           await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+          while (pendingIceCandidates.length) {
+            await pc.addIceCandidate(pendingIceCandidates.shift());
+          }
           break;
 
         case "ice-candidate":
-          if (pc && msg.candidate) {
+          if (msg.candidate) {
             try {
-              await pc.addIceCandidate(new RTCIceCandidate(msg.candidate));
+              const candidate = new RTCIceCandidate(msg.candidate);
+              if (pc?.remoteDescription) {
+                await pc.addIceCandidate(candidate);
+              } else {
+                pendingIceCandidates.push(candidate);
+              }
             } catch {
               /* candidato tardio, ignora */
             }
@@ -290,6 +299,7 @@
     });
 
     pc.addEventListener("track", (e) => {
+      if (e.track.kind === "audio") toast("áudio recebido", 2000);
       if (!remoteStream) remoteStream = new MediaStream();
       if (!remoteStream.getTracks().some((track) => track.id === e.track.id)) {
         remoteStream.addTrack(e.track);
@@ -318,6 +328,9 @@
   async function handleOffer(sdp) {
     await createPeerConnection();
     await pc.setRemoteDescription(new RTCSessionDescription(sdp));
+    while (pendingIceCandidates.length) {
+      await pc.addIceCandidate(pendingIceCandidates.shift());
+    }
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     send({ type: "answer", sdp: answer });
