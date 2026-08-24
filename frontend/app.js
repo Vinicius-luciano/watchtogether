@@ -33,6 +33,7 @@
   let ws = null;
   let pc = null;
   let localStream = null; // pode ficar null se não tiver câmera nem mic
+  let remoteStream = null;
   let screenStream = null;
   let audioSender = null;
   let videoSender = null;
@@ -214,6 +215,7 @@
 
         case "peer-left":
           toast("ela saiu da sessão");
+          remoteStream = null;
           remoteVideo.srcObject = null;
           remoteEmpty.classList.remove("hidden");
           break;
@@ -253,8 +255,13 @@
     });
 
     pc.addEventListener("track", (e) => {
-      remoteVideo.srcObject = e.streams[0];
+      if (!remoteStream) remoteStream = new MediaStream();
+      if (!remoteStream.getTracks().some((track) => track.id === e.track.id)) {
+        remoteStream.addTrack(e.track);
+      }
+      remoteVideo.srcObject = remoteStream;
       remoteEmpty.classList.add("hidden");
+      remoteVideo.play().catch(() => {});
     });
 
     pc.addEventListener("connectionstatechange", () => {
