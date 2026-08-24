@@ -301,6 +301,12 @@
     pc.addEventListener("track", (e) => {
       if (e.track.kind === "audio") toast("áudio recebido", 2000);
       if (!remoteStream) remoteStream = new MediaStream();
+      const previousTrack = remoteStream
+        .getTracks()
+        .find((track) => track.kind === e.track.kind);
+      if (previousTrack && previousTrack.id !== e.track.id) {
+        remoteStream.removeTrack(previousTrack);
+      }
       if (!remoteStream.getTracks().some((track) => track.id === e.track.id)) {
         remoteStream.addTrack(e.track);
       }
