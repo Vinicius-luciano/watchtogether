@@ -22,6 +22,7 @@
   const callToast = document.getElementById("call-toast");
 
   const btnMic = document.getElementById("btn-mic");
+  const btnAudio = document.getElementById("btn-audio");
   const btnCam = document.getElementById("btn-cam");
   const btnShare = document.getElementById("btn-share");
   const shareLabel = document.getElementById("share-label");
@@ -123,13 +124,13 @@
   }
 
   function applyLocalMediaUI() {
+    btnMic.disabled = !hasAudio;
+    btnCam.disabled = !hasVideo;
     if (!hasVideo) {
-      btnCam.disabled = true;
       btnCam.title = "nenhuma câmera disponível neste dispositivo";
       localVideo.hidden = true; // some até começar a compartilhar tela
     }
     if (!hasAudio) {
-      btnMic.disabled = true;
       btnMic.title = "nenhum microfone disponível neste dispositivo";
     }
     if (!hasVideo && !hasAudio) {
@@ -139,6 +140,17 @@
       );
     } else if (!hasVideo) {
       toast("sem câmera detectada — entrando só com áudio", 3500);
+    }
+  }
+
+  async function unlockRemoteAudio() {
+    if (!remoteVideo.srcObject) return;
+    remoteVideo.muted = false;
+    try {
+      await remoteVideo.play();
+      btnAudio.hidden = true;
+    } catch {
+      btnAudio.hidden = false;
     }
   }
 
@@ -152,8 +164,8 @@
     const result = await acquireLocalMedia();
     console.log("[debug] resultado final:", result);
     localStream = result.stream;
-    hasAudio = result.hasAudio;
-    hasVideo = result.hasVideo;
+    hasAudio = Boolean(localStream?.getAudioTracks().length);
+    hasVideo = Boolean(localStream?.getVideoTracks().length);
 
     if (localStream && hasVideo) {
       localVideo.srcObject = localStream;
@@ -281,7 +293,7 @@
       }
       remoteVideo.srcObject = remoteStream;
       remoteEmpty.classList.add("hidden");
-      remoteVideo.play().catch(() => {});
+      unlockRemoteAudio();
     });
 
     pc.addEventListener("connectionstatechange", () => {
@@ -311,6 +323,7 @@
     callRoomName.textContent = roomId;
     showScreen(screenCall);
     startTimer();
+    unlockRemoteAudio();
   }
 
   function startTimer() {
@@ -335,6 +348,8 @@
     localStream.getAudioTracks().forEach((t) => (t.enabled = micOn));
     btnMic.setAttribute("aria-pressed", String(micOn));
   });
+
+  btnAudio.addEventListener("click", unlockRemoteAudio);
 
   btnCam.addEventListener("click", () => {
     if (!hasVideo || !localStream) return;
