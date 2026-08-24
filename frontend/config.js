@@ -9,12 +9,28 @@ window.APP_CONFIG = {
   // Adicione o TURN do metered.ca (grátis até 50GB/mês) para funcionar mesmo
   // em redes com CGNAT/4G, que é comum no Brasil.
   ICE_SERVERS: [
-    { urls: "stun:stun.l.google.com:19302" },
-    // Exemplo do metered.ca — descomente e preencha depois de criar a conta:
-    // {
-    //   urls: "turn:standard.relay.metered.ca:80",
-    //   username: "SEU_USERNAME",
-    //   credential: "SUA_CREDENCIAL",
-    // },
+    {
+      urls: "stun:stun.relay.metered.ca:80",
+    },
+    {
+      urls: "turn:global.relay.metered.ca:80",
+      username: "06f45cbb81ad6888769bcc8e",
+      credential: "uQnnqYW4dun5Rujl",
+    },
+    {
+      urls: "turn:global.relay.metered.ca:80?transport=tcp",
+      username: "06f45cbb81ad6888769bcc8e",
+      credential: "uQnnqYW4dun5Rujl",
+    },
+    {
+      urls: "turn:global.relay.metered.ca:443",
+      username: "06f45cbb81ad6888769bcc8e",
+      credential: "uQnnqYW4dun5Rujl",
+    },
+    {
+      urls: "turns:global.relay.metered.ca:443?transport=tcp",
+      username: "06f45cbb81ad6888769bcc8e",
+      credential: "uQnnqYW4dun5Rujl",
+    },
   ],
 };
