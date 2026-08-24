@@ -8,8 +8,6 @@
   const screenWaiting = document.getElementById("screen-waiting");
   const screenCall = document.getElementById("screen-call");
 
-  const roomInput = document.getElementById("room-code");
-  const nameInput = document.getElementById("display-name");
   const btnEnter = document.getElementById("btn-enter");
   const entryError = document.getElementById("entry-error");
 
@@ -46,9 +44,12 @@
   let sharing = false;
   let timerHandle = null;
   let secondsElapsed = 0;
+  const fixedRoomId = "vinicius-e-dri";
 
   function showScreen(el) {
-    [screenEntry, screenWaiting, screenCall].forEach((s) => (s.hidden = s !== el));
+    [screenEntry, screenWaiting, screenCall].forEach(
+      (s) => (s.hidden = s !== el),
+    );
   }
 
   function toast(msg, ms = 3000) {
@@ -75,7 +76,9 @@
   function withTimeout(promise, ms) {
     return Promise.race([
       promise,
-      new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms)),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), ms),
+      ),
     ]);
   }
 
@@ -83,25 +86,36 @@
     console.log("[debug] tentando câmera+mic…");
     try {
       const stream = await withTimeout(
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true }),
-        4000
+        navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user" },
+          audio: true,
+        }),
+        4000,
       );
       console.log("[debug] câmera+mic OK");
       return { stream, hasAudio: true, hasVideo: true };
     } catch (err) {
-      console.log("[debug] câmera+mic falhou:", err && err.name, err && err.message);
+      console.log(
+        "[debug] câmera+mic falhou:",
+        err && err.name,
+        err && err.message,
+      );
     }
 
     console.log("[debug] tentando só mic…");
     try {
       const stream = await withTimeout(
         navigator.mediaDevices.getUserMedia({ audio: true }),
-        4000
+        4000,
       );
       console.log("[debug] só mic OK");
       return { stream, hasAudio: true, hasVideo: false };
     } catch (err) {
-      console.log("[debug] só mic falhou:", err && err.name, err && err.message);
+      console.log(
+        "[debug] só mic falhou:",
+        err && err.name,
+        err && err.message,
+      );
     }
 
     console.log("[debug] seguindo sem mídia nenhuma");
@@ -119,25 +133,21 @@
       btnMic.title = "nenhum microfone disponível neste dispositivo";
     }
     if (!hasVideo && !hasAudio) {
-      toast("entrando sem câmera/microfone — só a tela compartilhada e o chat de voz de quem tiver", 4000);
+      toast(
+        "entrando sem câmera/microfone — só a tela compartilhada e o chat de voz de quem tiver",
+        4000,
+      );
     } else if (!hasVideo) {
       toast("sem câmera detectada — entrando só com áudio", 3500);
     }
   }
 
   // ---------- fluxo de entrada ----------
-  btnEnter.addEventListener("click", async () => {
-    const raw = roomInput.value;
-    const room = slugify(raw);
-    if (!room) {
-      entryError.textContent = "digita um código pra sala primeiro.";
-      entryError.hidden = false;
-      return;
-    }
+  async function enterSession() {
     entryError.hidden = true;
-    roomId = room;
+    roomId = fixedRoomId;
     btnEnter.disabled = true;
-    btnEnter.querySelector("span").textContent = "verificando câmera/mic…";
+    btnEnter.querySelector("span").textContent = "conectando…";
 
     const result = await acquireLocalMedia();
     console.log("[debug] resultado final:", result);
@@ -154,15 +164,20 @@
     console.log("[debug] trocando pra tela de espera");
     showScreen(screenWaiting);
     applyLocalMediaUI();
-    console.log("[debug] conectando no servidor de sinalização:", cfg.SIGNALING_URL);
+    console.log(
+      "[debug] conectando no servidor de sinalização:",
+      cfg.SIGNALING_URL,
+    );
     connectSignaling();
-  });
+  }
+
+  btnEnter.addEventListener("click", enterSession);
 
   btnCancelWait.addEventListener("click", () => {
     cleanupAndReset();
     showScreen(screenEntry);
     btnEnter.disabled = false;
-    btnEnter.querySelector("span").textContent = "entrar na sessão";
+    btnEnter.querySelector("span").textContent = "conectar";
   });
 
   // ---------- sinalização (WebSocket) ----------
@@ -182,12 +197,13 @@
           break;
 
         case "room-full":
-          entryError.textContent = "essa sala já tem duas pessoas. Combinem outro código.";
+          entryError.textContent =
+            "essa sala já tem duas pessoas. Combinem outro código.";
           entryError.hidden = false;
           cleanupAndReset();
           showScreen(screenEntry);
           btnEnter.disabled = false;
-          btnEnter.querySelector("span").textContent = "entrar na sessão";
+          btnEnter.querySelector("span").textContent = "conectar";
           break;
 
         case "peer-ready":
@@ -238,8 +254,12 @@
   function createPeerConnection() {
     pc = new RTCPeerConnection({ iceServers: cfg.ICE_SERVERS });
 
-    const audioTransceiver = pc.addTransceiver("audio", { direction: "sendrecv" });
-    const videoTransceiver = pc.addTransceiver("video", { direction: "sendrecv" });
+    const audioTransceiver = pc.addTransceiver("audio", {
+      direction: "sendrecv",
+    });
+    const videoTransceiver = pc.addTransceiver("video", {
+      direction: "sendrecv",
+    });
     audioSender = audioTransceiver.sender;
     videoSender = videoTransceiver.sender;
 
@@ -325,7 +345,9 @@
 
   btnShare.addEventListener("click", async () => {
     if (!navigator.mediaDevices.getDisplayMedia) {
-      toast("este navegador não permite compartilhar tela (comum no iPhone/iPad)");
+      toast(
+        "este navegador não permite compartilhar tela (comum no iPhone/iPad)",
+      );
       return;
     }
 
@@ -360,7 +382,8 @@
     if (screenStream) screenStream.getTracks().forEach((t) => t.stop());
     screenStream = null;
 
-    const cameraTrack = hasVideo && localStream ? localStream.getVideoTracks()[0] : null;
+    const cameraTrack =
+      hasVideo && localStream ? localStream.getVideoTracks()[0] : null;
     if (videoSender) await videoSender.replaceTrack(cameraTrack || null);
 
     if (cameraTrack) {

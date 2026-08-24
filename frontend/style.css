@@ -173,37 +173,6 @@ input {
   border-radius: 999px 999px 0 0;
 }
 
-.field {
-  display: block;
-  margin-bottom: 16px;
-}
-.field span {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--cream-dim);
-  margin-bottom: 6px;
-}
-.field input {
-  width: 100%;
-  background: var(--void);
-  border: 1px solid rgba(241, 231, 214, 0.14);
-  border-radius: 8px;
-  padding: 12px 13px;
-  color: var(--cream);
-  font-size: 15px;
-  outline: none;
-  transition: border-color 0.15s ease;
-}
-.field input:focus {
-  border-color: var(--gold);
-}
-.field input::placeholder {
-  color: rgba(184, 172, 152, 0.5);
-}
-
 .btn-primary {
   width: 100%;
   border: none;

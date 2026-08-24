@@ -1,133 +1,180 @@
 <!doctype html>
 <html lang="pt-BR">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-<title>Sessão — chamada + tela compartilhada</title>
-<meta name="theme-color" content="#100D0B" />
-<meta name="description" content="Ligue e assista junto, à distância." />
-<link rel="manifest" href="manifest.json" />
-<link rel="apple-touch-icon" href="icons/icon-192.png" />
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Sessão" />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="style.css" />
-</head>
-<body>
-
-<!-- TELA 1 — bilhete de entrada -->
-<main id="screen-entry" class="screen">
-  <div class="bulbs-row" aria-hidden="true">
-    <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
-  </div>
-
-  <div class="ticket">
-    <div class="ticket-notch top" aria-hidden="true"></div>
-    <p class="eyebrow">sessão particular</p>
-    <h1 class="marquee-title">bilhete de<br />entrada</h1>
-
-    <label class="field">
-      <span>código da sala</span>
-      <input id="room-code" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" placeholder="ex: noite-de-cinema" maxlength="40" />
-    </label>
-
-    <label class="field">
-      <span>seu nome no bilhete</span>
-      <input id="display-name" type="text" autocomplete="off" placeholder="ex: Vini" maxlength="24" />
-    </label>
-
-    <button id="btn-enter" class="btn-primary" type="button">
-      <span>entrar na sessão</span>
-    </button>
-
-    <p id="entry-hint" class="hint">Combinem o mesmo código antes — quem entrar primeiro espera; quando o segundo entra, a chamada começa sozinha. Câmera é opcional: sem ela, dá pra entrar só com áudio (se tiver mic) ou só pra compartilhar a tela.</p>
-    <p id="entry-error" class="hint hint-error" hidden></p>
-
-    <div class="ticket-notch bottom" aria-hidden="true"></div>
-  </div>
-
-  <div class="perforation" aria-hidden="true"></div>
-</main>
-
-<!-- TELA 2 — sala de espera -->
-<main id="screen-waiting" class="screen" hidden>
-  <div class="perforation" aria-hidden="true"></div>
-  <div class="waiting-wrap">
-    <div class="reel" aria-hidden="true">
-      <svg viewBox="0 0 100 100" width="72" height="72">
-        <circle cx="50" cy="50" r="46" fill="none" stroke="currentColor" stroke-width="4"/>
-        <circle cx="50" cy="50" r="10" fill="currentColor"/>
-        <circle cx="50" cy="20" r="9" fill="currentColor"/>
-        <circle cx="76" cy="38" r="9" fill="currentColor"/>
-        <circle cx="66" cy="70" r="9" fill="currentColor"/>
-        <circle cx="34" cy="70" r="9" fill="currentColor"/>
-        <circle cx="24" cy="38" r="9" fill="currentColor"/>
-      </svg>
-    </div>
-    <p class="eyebrow">sala "<span id="waiting-room-name"></span>"</p>
-    <h2 class="marquee-title small">aguardando<br />a outra pessoa…</h2>
-    <p class="hint">Deixa a aba aberta. Assim que ela entrar com o mesmo código, a chamada liga sozinha.</p>
-    <button id="btn-cancel-wait" class="btn-ghost" type="button">cancelar</button>
-  </div>
-  <div class="perforation" aria-hidden="true"></div>
-</main>
-
-<!-- TELA 3 — sessão em andamento -->
-<main id="screen-call" class="screen screen-call" hidden>
-  <header class="marquee-bar">
-    <div class="bulbs-row" aria-hidden="true">
-      <span></span><span></span><span></span><span></span>
-    </div>
-    <div class="marquee-status">
-      <span class="dot-live" aria-hidden="true"></span>
-      <span id="call-room-name">sala</span>
-      <span class="sep">·</span>
-      <span id="call-timer" class="mono">00:00</span>
-    </div>
-    <div class="bulbs-row" aria-hidden="true">
-      <span></span><span></span><span></span><span></span>
-    </div>
-  </header>
-
-  <div class="screen-frame">
-    <div class="perforation" aria-hidden="true"></div>
-
-    <div class="stage">
-      <video id="remote-video" autoplay playsinline></video>
-      <div id="remote-empty" class="stage-empty">
-        <p>a tela dela aparece aqui assim que ela ligar a câmera ou compartilhar algo</p>
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <title>Sessão — chamada + tela compartilhada</title>
+    <meta name="theme-color" content="#100D0B" />
+    <meta name="description" content="Ligue e assista junto, à distância." />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="apple-touch-icon" href="icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <meta name="apple-mobile-web-app-title" content="Sessão" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <!-- TELA 1 — bilhete de entrada -->
+    <main id="screen-entry" class="screen">
+      <div class="bulbs-row" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span
+        ><span></span><span></span><span></span>
       </div>
-      <video id="local-video" autoplay playsinline muted class="pip"></video>
-      <p id="call-toast" class="call-toast" hidden></p>
-    </div>
 
-    <div class="perforation" aria-hidden="true"></div>
-  </div>
+      <div class="ticket">
+        <div class="ticket-notch top" aria-hidden="true"></div>
+        <p class="eyebrow">sessão particular</p>
+        <h1 class="marquee-title">bilhete de<br />entrada</h1>
 
-  <footer class="control-bar">
-    <button id="btn-mic" class="ctrl" type="button" aria-pressed="true">
-      <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"/></svg>
-      <span class="ctrl-label">microfone</span>
-    </button>
-    <button id="btn-cam" class="ctrl" type="button" aria-pressed="true">
-      <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M17 10.5V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3.5l4 4v-11l-4 4Z"/></svg>
-      <span class="ctrl-label">câmera</span>
-    </button>
-    <button id="btn-share" class="ctrl ctrl-accent" type="button" aria-pressed="false">
-      <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4ZM4 6h16v10H4V6Z"/></svg>
-      <span class="ctrl-label" id="share-label">compartilhar tela</span>
-    </button>
-    <button id="btn-leave" class="ctrl ctrl-danger" type="button">
-      <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.996.996 0 0 1-.29-.7c0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .27-.11.52-.29.7l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28a11.6 11.6 0 0 0-2.66-1.85.99.99 0 0 1-.56-.9v-3.1A17.6 17.6 0 0 0 12 9Z"/></svg>
-      <span class="ctrl-label">sair</span>
-    </button>
-  </footer>
-</main>
+        <button id="btn-enter" class="btn-primary" type="button">
+          <span>conectar</span>
+        </button>
 
-<script src="config.js"></script>
-<script src="app.js"></script>
-</body>
+        <p id="entry-hint" class="hint">
+          A chamada começa quando os dois entrarem. Câmera é opcional.
+        </p>
+        <p id="entry-error" class="hint hint-error" hidden></p>
+
+        <div class="ticket-notch bottom" aria-hidden="true"></div>
+      </div>
+
+      <div class="perforation" aria-hidden="true"></div>
+    </main>
+
+    <!-- TELA 2 — sala de espera -->
+    <main id="screen-waiting" class="screen" hidden>
+      <div class="perforation" aria-hidden="true"></div>
+      <div class="waiting-wrap">
+        <div class="reel" aria-hidden="true">
+          <svg viewBox="0 0 100 100" width="72" height="72">
+            <circle
+              cx="50"
+              cy="50"
+              r="46"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="4"
+            />
+            <circle cx="50" cy="50" r="10" fill="currentColor" />
+            <circle cx="50" cy="20" r="9" fill="currentColor" />
+            <circle cx="76" cy="38" r="9" fill="currentColor" />
+            <circle cx="66" cy="70" r="9" fill="currentColor" />
+            <circle cx="34" cy="70" r="9" fill="currentColor" />
+            <circle cx="24" cy="38" r="9" fill="currentColor" />
+          </svg>
+        </div>
+        <p class="eyebrow">sala "<span id="waiting-room-name"></span>"</p>
+        <h2 class="marquee-title small">aguardando<br />a outra pessoa…</h2>
+        <p class="hint">
+          Deixa a aba aberta. Assim que ela entrar com o mesmo código, a chamada
+          liga sozinha.
+        </p>
+        <button id="btn-cancel-wait" class="btn-ghost" type="button">
+          cancelar
+        </button>
+      </div>
+      <div class="perforation" aria-hidden="true"></div>
+    </main>
+
+    <!-- TELA 3 — sessão em andamento -->
+    <main id="screen-call" class="screen screen-call" hidden>
+      <header class="marquee-bar">
+        <div class="bulbs-row" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+        <div class="marquee-status">
+          <span class="dot-live" aria-hidden="true"></span>
+          <span id="call-room-name">sala</span>
+          <span class="sep">·</span>
+          <span id="call-timer" class="mono">00:00</span>
+        </div>
+        <div class="bulbs-row" aria-hidden="true">
+          <span></span><span></span><span></span><span></span>
+        </div>
+      </header>
+
+      <div class="screen-frame">
+        <div class="perforation" aria-hidden="true"></div>
+
+        <div class="stage">
+          <video id="remote-video" autoplay playsinline></video>
+          <div id="remote-empty" class="stage-empty">
+            <p>
+              a tela dela aparece aqui assim que ela ligar a câmera ou
+              compartilhar algo
+            </p>
+          </div>
+          <video
+            id="local-video"
+            autoplay
+            playsinline
+            muted
+            class="pip"
+          ></video>
+          <p id="call-toast" class="call-toast" hidden></p>
+        </div>
+
+        <div class="perforation" aria-hidden="true"></div>
+      </div>
+
+      <footer class="control-bar">
+        <button id="btn-mic" class="ctrl" type="button" aria-pressed="true">
+          <svg viewBox="0 0 24 24" width="22" height="22">
+            <path
+              fill="currentColor"
+              d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"
+            />
+          </svg>
+          <span class="ctrl-label">microfone</span>
+        </button>
+        <button id="btn-cam" class="ctrl" type="button" aria-pressed="true">
+          <svg viewBox="0 0 24 24" width="22" height="22">
+            <path
+              fill="currentColor"
+              d="M17 10.5V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3.5l4 4v-11l-4 4Z"
+            />
+          </svg>
+          <span class="ctrl-label">câmera</span>
+        </button>
+        <button
+          id="btn-share"
+          class="ctrl ctrl-accent"
+          type="button"
+          aria-pressed="false"
+        >
+          <svg viewBox="0 0 24 24" width="22" height="22">
+            <path
+              fill="currentColor"
+              d="M20 18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2H0v2h24v-2h-4ZM4 6h16v10H4V6Z"
+            />
+          </svg>
+          <span class="ctrl-label" id="share-label">compartilhar tela</span>
+        </button>
+        <button id="btn-leave" class="ctrl ctrl-danger" type="button">
+          <svg viewBox="0 0 24 24" width="22" height="22">
+            <path
+              fill="currentColor"
+              d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.996.996 0 0 1-.29-.7c0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .27-.11.52-.29.7l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.1-.7-.28a11.6 11.6 0 0 0-2.66-1.85.99.99 0 0 1-.56-.9v-3.1A17.6 17.6 0 0 0 12 9Z"
+            />
+          </svg>
+          <span class="ctrl-label">sair</span>
+        </button>
+      </footer>
+    </main>
+
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+  </body>
 </html>
