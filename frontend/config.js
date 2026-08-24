@@ -1,0 +1,20 @@
+// Edite estes valores depois de hospedar o servidor de sinalização e (opcionalmente)
+// criar uma conta grátis no metered.ca para o TURN. Veja o README para o passo a passo.
+
+window.APP_CONFIG = {
+  // URL do servidor de sinalização no Render (troque pela sua, começando com wss://)
+  SIGNALING_URL: "ws://localhost:8080",
+
+  // Servidores STUN/TURN. O STUN do Google é grátis e sem cadastro.
+  // Adicione o TURN do metered.ca (grátis até 50GB/mês) para funcionar mesmo
+  // em redes com CGNAT/4G, que é comum no Brasil.
+  ICE_SERVERS: [
+    { urls: "stun:stun.l.google.com:19302" },
+    // Exemplo do metered.ca — descomente e preencha depois de criar a conta:
+    // {
+    //   urls: "turn:standard.relay.metered.ca:80",
+    //   username: "SEU_USERNAME",
+    //   credential: "SUA_CREDENCIAL",
+    // },
+  ],
+};
