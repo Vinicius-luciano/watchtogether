@@ -1,7 +1,7 @@
 // Service worker simples: cacheia o "casco" do app (HTML/CSS/JS) pra abrir rápido.
 // Não cacheia nada de vídeo/áudio - isso nunca passa por aqui.
 
-const CACHE_NAME = "sessao-shell-v2";
+const CACHE_NAME = "sessao-shell-v3";
 const SHELL_FILES = [
   "./index.html",
   "./style.css",
