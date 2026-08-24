@@ -17,6 +17,7 @@
   const callRoomName = document.getElementById("call-room-name");
   const callTimer = document.getElementById("call-timer");
   const remoteVideo = document.getElementById("remote-video");
+  const remoteAudio = document.getElementById("remote-audio");
   const localVideo = document.getElementById("local-video");
   const remoteEmpty = document.getElementById("remote-empty");
   const callToast = document.getElementById("call-toast");
@@ -145,9 +146,10 @@
 
   async function unlockRemoteAudio() {
     if (!remoteVideo.srcObject) return;
-    remoteVideo.muted = false;
+    remoteVideo.muted = true;
+    remoteAudio.srcObject = remoteVideo.srcObject;
     try {
-      await remoteVideo.play();
+      await remoteAudio.play();
       btnAudio.hidden = true;
     } catch {
       btnAudio.hidden = false;
@@ -245,6 +247,7 @@
           toast("ela saiu da sessão");
           remoteStream = null;
           remoteVideo.srcObject = null;
+          remoteAudio.srcObject = null;
           remoteEmpty.classList.remove("hidden");
           break;
       }
@@ -263,7 +266,7 @@
   // Sempre cria transceivers de áudio e vídeo, MESMO sem câmera/mic locais.
   // Isso garante que dá pra ligar a tela compartilhada depois (via replaceTrack)
   // sem precisar ter tido uma câmera desde o início.
-  function createPeerConnection() {
+  async function createPeerConnection() {
     pc = new RTCPeerConnection({ iceServers: cfg.ICE_SERVERS });
 
     const audioTransceiver = pc.addTransceiver("audio", {
@@ -278,8 +281,8 @@
     if (localStream) {
       const aTrack = localStream.getAudioTracks()[0];
       const vTrack = localStream.getVideoTracks()[0];
-      if (aTrack) audioSender.replaceTrack(aTrack);
-      if (vTrack) videoSender.replaceTrack(vTrack);
+      if (aTrack) await audioSender.replaceTrack(aTrack);
+      if (vTrack) await videoSender.replaceTrack(vTrack);
     }
 
     pc.addEventListener("icecandidate", (e) => {
@@ -292,6 +295,7 @@
         remoteStream.addTrack(e.track);
       }
       remoteVideo.srcObject = remoteStream;
+      remoteAudio.srcObject = remoteStream;
       remoteEmpty.classList.add("hidden");
       unlockRemoteAudio();
     });
@@ -305,14 +309,14 @@
   }
 
   async function makeOffer() {
-    createPeerConnection();
+    await createPeerConnection();
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     send({ type: "offer", sdp: offer });
   }
 
   async function handleOffer(sdp) {
-    createPeerConnection();
+    await createPeerConnection();
     await pc.setRemoteDescription(new RTCSessionDescription(sdp));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
