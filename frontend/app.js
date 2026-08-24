@@ -319,14 +319,14 @@
   }
 
   async function makeOffer() {
-    await createPeerConnection();
+    if (!pc) await createPeerConnection();
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     send({ type: "offer", sdp: offer });
   }
 
   async function handleOffer(sdp) {
-    await createPeerConnection();
+    if (!pc) await createPeerConnection();
     await pc.setRemoteDescription(new RTCSessionDescription(sdp));
     while (pendingIceCandidates.length) {
       await pc.addIceCandidate(pendingIceCandidates.shift());
@@ -394,7 +394,13 @@
       }
 
       const screenTrack = screenStream.getVideoTracks()[0];
-      if (videoSender) await videoSender.replaceTrack(screenTrack);
+      if (!videoSender) {
+        toast("conexão ainda não está pronta");
+        screenStream.getTracks().forEach((track) => track.stop());
+        screenStream = null;
+        return;
+      }
+      await videoSender.replaceTrack(screenTrack);
 
       localVideo.srcObject = screenStream;
       localVideo.hidden = false;
@@ -405,6 +411,7 @@
       btnShare.setAttribute("aria-pressed", "true");
       shareLabel.textContent = "parar compartilhar";
       toast("compartilhando sua tela");
+      await makeOffer();
     } else {
       stopSharing();
     }
@@ -416,7 +423,10 @@
 
     const cameraTrack =
       hasVideo && localStream ? localStream.getVideoTracks()[0] : null;
-    if (videoSender) await videoSender.replaceTrack(cameraTrack || null);
+    if (videoSender) {
+      await videoSender.replaceTrack(cameraTrack || null);
+      await makeOffer();
+    }
 
     if (cameraTrack) {
       localVideo.srcObject = localStream;
