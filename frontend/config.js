@@ -3,7 +3,7 @@
 
 window.APP_CONFIG = {
   // URL do servidor de sinalização no Render (troque pela sua, começando com wss://)
-  SIGNALING_URL: "wss://watchtogether-server-b9zq.onrender.com",
+  SIGNALING_URL: "wss://watchtogether-server-b9zg.onrender.com",
 
   // Servidores STUN/TURN. O STUN do Google é grátis e sem cadastro.
   // Adicione o TURN do metered.ca (grátis até 50GB/mês) para funcionar mesmo
