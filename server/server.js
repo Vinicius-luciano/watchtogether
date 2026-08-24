@@ -2,10 +2,15 @@
 // Função única: repassar mensagens (offer/answer/ICE) entre os 2 peers de uma sala.
 // Não guarda vídeo nem áudio - isso viaja direto entre os navegadores (WebRTC).
 
+const http = require("http");
 const { WebSocketServer } = require("ws");
 
 const PORT = process.env.PORT || 8080;
-const wss = new WebSocketServer({ port: PORT });
+const httpServer = http.createServer((req, res) => {
+  res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
+  res.end("watchtogether signaling server is running");
+});
+const wss = new WebSocketServer({ server: httpServer });
 
 // rooms: Map<roomId, Set<ws>>
 const rooms = new Map();
@@ -51,7 +56,9 @@ wss.on("connection", (ws) => {
       log(`peer entrou na sala "${roomId}" (${peers.size}/2)`);
 
       // avisa o próprio peer se ele é o primeiro ou o segundo a entrar
-      ws.send(JSON.stringify({ type: "joined", isInitiator: peers.size === 1 }));
+      ws.send(
+        JSON.stringify({ type: "joined", isInitiator: peers.size === 1 }),
+      );
 
       // avisa o outro peer (se já tiver alguém) que a sala está completa
       if (peers.size === 2) {
@@ -63,7 +70,11 @@ wss.on("connection", (ws) => {
     }
 
     // repassa offer / answer / ice-candidate / chat / sync para o outro peer da sala
-    if (["offer", "answer", "ice-candidate", "chat", "sync", "leave"].includes(msg.type)) {
+    if (
+      ["offer", "answer", "ice-candidate", "chat", "sync", "leave"].includes(
+        msg.type,
+      )
+    ) {
       const peers = rooms.get(ws.roomId);
       if (!peers) return;
       for (const peer of peers) {
@@ -98,4 +109,6 @@ const interval = setInterval(() => {
 
 wss.on("close", () => clearInterval(interval));
 
-log(`servidor de sinalização rodando na porta ${PORT}`);
+httpServer.listen(PORT, "0.0.0.0", () => {
+  log(`servidor de sinalização rodando na porta ${PORT}`);
+});
