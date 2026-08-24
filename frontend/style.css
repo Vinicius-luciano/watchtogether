@@ -281,6 +281,8 @@ input {
 /* ---------- call screen ---------- */
 .screen-call {
   padding: 0;
+  width: 100%;
+  align-items: stretch;
   justify-content: flex-start;
   height: 100dvh;
   overflow: hidden;
