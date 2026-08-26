@@ -93,7 +93,11 @@
       const stream = await withTimeout(
         navigator.mediaDevices.getUserMedia({
           video: { facingMode: "user" },
-          audio: true,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
         }),
         4000,
       );
@@ -110,7 +114,13 @@
     console.log("[debug] tentando só mic…");
     try {
       const stream = await withTimeout(
-        navigator.mediaDevices.getUserMedia({ audio: true }),
+        navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
+        }),
         4000,
       );
       console.log("[debug] só mic OK");
@@ -215,7 +225,7 @@
 
         case "room-full":
           entryError.textContent =
-            "essa sala já tem duas pessoas. Combinem outro código.";
+            "essa sessão já está com duas pessoas. Tente novamente mais tarde.";
           entryError.hidden = false;
           cleanupAndReset();
           showScreen(screenEntry);
