@@ -27,6 +27,7 @@
   const btnAudio = document.getElementById("btn-audio");
   const btnCam = document.getElementById("btn-cam");
   const btnShare = document.getElementById("btn-share");
+  const btnFullscreen = document.getElementById("btn-fullscreen");
   const shareLabel = document.getElementById("share-label");
   const btnLeave = document.getElementById("btn-leave");
 
@@ -475,6 +476,20 @@
     } else {
       stopSharing();
     }
+  });
+
+  btnFullscreen.addEventListener("click", async () => {
+    if (remoteVideo.webkitEnterFullscreen) {
+      remoteVideo.webkitEnterFullscreen();
+      return;
+    }
+
+    if (document.fullscreenElement) {
+      await document.exitFullscreen?.();
+      return;
+    }
+
+    await (stage.requestFullscreen?.() || remoteVideo.requestFullscreen?.());
   });
 
   async function stopSharing() {

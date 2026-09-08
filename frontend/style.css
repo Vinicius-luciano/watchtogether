@@ -439,7 +439,7 @@ input {
   }
 
   #screen-call .stage video#remote-video {
-    object-fit: cover;
+    object-fit: contain;
     object-position: center;
     display: block;
   }
