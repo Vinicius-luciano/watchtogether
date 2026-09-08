@@ -269,19 +269,31 @@
           break;
 
         case "peer-left":
-          toast("ela saiu da sessão");
-          remoteStream = null;
-          remoteVideo.srcObject = null;
-          remoteAudio.srcObject = null;
-          remoteEmpty.classList.remove("hidden");
+          resetAfterPeerDisconnect("ela saiu da sessão");
           break;
       }
     });
 
     ws.addEventListener("close", () => {
-      if (!screenCall.hidden) toast("conexão com o servidor caiu");
+      if (!screenCall.hidden) resetAfterPeerDisconnect("conexão encerrada");
     });
   }
+
+  function resetAfterPeerDisconnect(message) {
+    cleanupAndReset();
+    showScreen(screenEntry);
+    btnEnter.disabled = false;
+    btnEnter.querySelector("span").textContent = "conectar";
+    entryError.hidden = true;
+    if (message) toast(message);
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState !== "visible" || screenCall.hidden) return;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      resetAfterPeerDisconnect("conexão encerrada — conecte novamente");
+    }
+  });
 
   function send(msg) {
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));

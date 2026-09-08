@@ -15,6 +15,21 @@ const wss = new WebSocketServer({ server: httpServer });
 // rooms: Map<roomId, Set<ws>>
 const rooms = new Map();
 
+function removePeer(ws) {
+  if (!ws.roomId) return;
+  const roomId = ws.roomId;
+  const peers = rooms.get(roomId);
+  ws.roomId = null;
+  if (!peers) return;
+
+  peers.delete(ws);
+  for (const peer of peers) {
+    if (peer.readyState === 1) peer.send(JSON.stringify({ type: "peer-left" }));
+  }
+  if (peers.size === 0) rooms.delete(roomId);
+  log(`peer saiu da sala "${roomId}"`);
+}
+
 function log(...args) {
   console.log(new Date().toISOString(), ...args);
 }
@@ -22,9 +37,11 @@ function log(...args) {
 wss.on("connection", (ws) => {
   ws.roomId = null;
   ws.isAlive = true;
+  ws.missedPings = 0;
 
   ws.on("pong", () => {
     ws.isAlive = true;
+    ws.missedPings = 0;
   });
 
   ws.on("message", (raw) => {
@@ -77,6 +94,11 @@ wss.on("connection", (ws) => {
     ) {
       const peers = rooms.get(ws.roomId);
       if (!peers) return;
+      if (msg.type === "leave") {
+        removePeer(ws);
+        ws.close();
+        return;
+      }
       for (const peer of peers) {
         if (peer !== ws && peer.readyState === 1) {
           peer.send(JSON.stringify(msg));
@@ -86,26 +108,21 @@ wss.on("connection", (ws) => {
   });
 
   ws.on("close", () => {
-    if (!ws.roomId) return;
-    const peers = rooms.get(ws.roomId);
-    if (!peers) return;
-    peers.delete(ws);
-    for (const peer of peers) {
-      peer.send(JSON.stringify({ type: "peer-left" }));
-    }
-    if (peers.size === 0) rooms.delete(ws.roomId);
-    log(`peer saiu da sala "${ws.roomId}"`);
+    removePeer(ws);
   });
 });
 
 // keep-alive: derruba conexões mortas (evita salas fantasmas)
 const interval = setInterval(() => {
   wss.clients.forEach((ws) => {
-    if (ws.isAlive === false) return ws.terminate();
+    if (ws.isAlive === false) {
+      ws.missedPings++;
+      if (ws.missedPings >= 4) return ws.terminate();
+    }
     ws.isAlive = false;
     ws.ping();
   });
-}, 30000);
+}, 15000);
 
 wss.on("close", () => clearInterval(interval));
 
