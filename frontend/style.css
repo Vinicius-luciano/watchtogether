@@ -438,6 +438,12 @@ input {
     inset: 0;
   }
 
+  #screen-call .stage video#remote-video {
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+
   #screen-call .screen-frame {
     display: block;
   }
