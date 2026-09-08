@@ -425,6 +425,32 @@ input {
   background: rgba(241, 231, 214, 0.06);
 }
 
+@media (orientation: landscape) {
+  #screen-call:not(.controls-visible) .marquee-bar,
+  #screen-call:not(.controls-visible) .perforation,
+  #screen-call:not(.controls-visible) .control-bar {
+    display: none;
+  }
+
+  #screen-call .screen-frame,
+  #screen-call .stage {
+    position: absolute;
+    inset: 0;
+  }
+
+  #screen-call .screen-frame {
+    display: block;
+  }
+
+  #screen-call.controls-visible .control-bar {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+  }
+}
+
 @media (min-width: 640px) {
   .pip {
     width: 150px;

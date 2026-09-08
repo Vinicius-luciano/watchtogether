@@ -16,6 +16,7 @@
 
   const callRoomName = document.getElementById("call-room-name");
   const callTimer = document.getElementById("call-timer");
+  const stage = screenCall.querySelector(".stage");
   const remoteVideo = document.getElementById("remote-video");
   const remoteAudio = document.getElementById("remote-audio");
   const localVideo = document.getElementById("local-video");
@@ -47,7 +48,10 @@
   let camOn = true;
   let sharing = false;
   let timerHandle = null;
+  let controlsHideHandle = null;
   let secondsElapsed = 0;
+  const landscapeQuery = window.matchMedia("(orientation: landscape)");
+  const controlsVisibleMs = 3000;
   const pendingIceCandidates = [];
   const fixedRoomId = "vinicius-e-dri";
 
@@ -376,6 +380,31 @@
     callTimer.textContent = `${m}:${s}`;
   }
 
+  function hideCallControls() {
+    clearTimeout(controlsHideHandle);
+    controlsHideHandle = null;
+    screenCall.classList.remove("controls-visible");
+  }
+
+  function scheduleControlsHide() {
+    clearTimeout(controlsHideHandle);
+    controlsHideHandle = setTimeout(hideCallControls, controlsVisibleMs);
+  }
+
+  stage.addEventListener("pointerup", (event) => {
+    if (!landscapeQuery.matches || event.target.closest(".control-bar")) {
+      return;
+    }
+
+    const controlsAreVisible = screenCall.classList.toggle("controls-visible");
+    if (controlsAreVisible) {
+      scheduleControlsHide();
+    } else {
+      clearTimeout(controlsHideHandle);
+      controlsHideHandle = null;
+    }
+  });
+
   // ---------- controles ----------
   btnMic.addEventListener("click", () => {
     if (!hasAudio || !localStream) return;
@@ -503,6 +532,7 @@
 
   function cleanupAndReset() {
     clearInterval(timerHandle);
+    hideCallControls();
     if (pc) pc.close();
     if (localStream) localStream.getTracks().forEach((t) => t.stop());
     if (screenStream) screenStream.getTracks().forEach((t) => t.stop());
