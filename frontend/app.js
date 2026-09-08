@@ -9,6 +9,7 @@
   const screenCall = document.getElementById("screen-call");
 
   const btnEnter = document.getElementById("btn-enter");
+  const entryHint = document.getElementById("entry-hint");
   const entryError = document.getElementById("entry-error");
 
   const waitingRoomName = document.getElementById("waiting-room-name");
@@ -19,13 +20,10 @@
   const stage = screenCall.querySelector(".stage");
   const remoteVideo = document.getElementById("remote-video");
   const remoteAudio = document.getElementById("remote-audio");
-  const localVideo = document.getElementById("local-video");
   const remoteEmpty = document.getElementById("remote-empty");
   const callToast = document.getElementById("call-toast");
 
-  const btnMic = document.getElementById("btn-mic");
   const btnAudio = document.getElementById("btn-audio");
-  const btnCam = document.getElementById("btn-cam");
   const btnShare = document.getElementById("btn-share");
   const btnFullscreen = document.getElementById("btn-fullscreen");
   const shareLabel = document.getElementById("share-label");
@@ -34,21 +32,17 @@
   // ---------- estado ----------
   let ws = null;
   let pc = null;
-  let localStream = null; // pode ficar null se não tiver câmera nem mic
   let remoteStream = null;
   let screenStream = null;
   let shareAudioContext = null;
   let mixedAudioTrack = null;
   let audioSender = null;
   let videoSender = null;
-  let hasAudio = false;
-  let hasVideo = false;
   let isInitiator = false;
   let roomId = "";
-  let micOn = true;
-  let camOn = true;
   let sharing = false;
   let timerHandle = null;
+  let signalingTimeoutHandle = null;
   let controlsHideHandle = null;
   let secondsElapsed = 0;
   const landscapeQuery = window.matchMedia("(orientation: landscape)");
@@ -69,99 +63,6 @@
     toast._t = setTimeout(() => (callToast.hidden = true), ms);
   }
 
-  function slugify(str) {
-    return str
-      .trim()
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-  }
-
-  // ---------- captura de câmera/mic, com fallback gradual ----------
-  // tenta câmera+mic -> só mic -> nada (só tela compartilhada mais tarde)
-  // cada tentativa tem um limite de tempo: em alguns sistemas sem câmera,
-  // getUserMedia trava pra sempre em vez de dar erro rápido.
-  function withTimeout(promise, ms) {
-    return Promise.race([
-      promise,
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error("timeout")), ms),
-      ),
-    ]);
-  }
-
-  async function acquireLocalMedia() {
-    console.log("[debug] tentando câmera+mic…");
-    try {
-      const stream = await withTimeout(
-        navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "user" },
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        }),
-        4000,
-      );
-      console.log("[debug] câmera+mic OK");
-      return { stream, hasAudio: true, hasVideo: true };
-    } catch (err) {
-      console.log(
-        "[debug] câmera+mic falhou:",
-        err && err.name,
-        err && err.message,
-      );
-    }
-
-    console.log("[debug] tentando só mic…");
-    try {
-      const stream = await withTimeout(
-        navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
-        }),
-        4000,
-      );
-      console.log("[debug] só mic OK");
-      return { stream, hasAudio: true, hasVideo: false };
-    } catch (err) {
-      console.log(
-        "[debug] só mic falhou:",
-        err && err.name,
-        err && err.message,
-      );
-    }
-
-    console.log("[debug] seguindo sem mídia nenhuma");
-    return { stream: null, hasAudio: false, hasVideo: false };
-  }
-
-  function applyLocalMediaUI() {
-    btnMic.disabled = !hasAudio;
-    btnCam.disabled = !hasVideo;
-    if (!hasVideo) {
-      btnCam.title = "nenhuma câmera disponível neste dispositivo";
-      localVideo.hidden = true; // some até começar a compartilhar tela
-    }
-    if (!hasAudio) {
-      btnMic.title = "nenhum microfone disponível neste dispositivo";
-    }
-    if (!hasVideo && !hasAudio) {
-      toast(
-        "entrando sem câmera/microfone — só a tela compartilhada e o chat de voz de quem tiver",
-        4000,
-      );
-    } else if (!hasVideo) {
-      toast("sem câmera detectada — entrando só com áudio", 3500);
-    }
-  }
-
   async function unlockRemoteAudio() {
     if (!remoteVideo.srcObject) return;
     remoteVideo.muted = true;
@@ -180,26 +81,10 @@
     roomId = fixedRoomId;
     btnEnter.disabled = true;
     btnEnter.querySelector("span").textContent = "conectando…";
-
-    const result = await acquireLocalMedia();
-    console.log("[debug] resultado final:", result);
-    localStream = result.stream;
-    hasAudio = Boolean(localStream?.getAudioTracks().length);
-    hasVideo = Boolean(localStream?.getVideoTracks().length);
-
-    if (localStream && hasVideo) {
-      localVideo.srcObject = localStream;
-      localVideo.hidden = false;
-    }
+    entryHint.textContent = "Conectando à sessão…";
 
     waitingRoomName.textContent = roomId;
-    console.log("[debug] trocando pra tela de espera");
     showScreen(screenWaiting);
-    applyLocalMediaUI();
-    console.log(
-      "[debug] conectando no servidor de sinalização:",
-      cfg.SIGNALING_URL,
-    );
     connectSignaling();
   }
 
@@ -210,68 +95,95 @@
     showScreen(screenEntry);
     btnEnter.disabled = false;
     btnEnter.querySelector("span").textContent = "conectar";
+    entryHint.textContent = "A sessão começa quando os dois entrarem.";
   });
 
   // ---------- sinalização (WebSocket) ----------
   function connectSignaling() {
     ws = new WebSocket(cfg.SIGNALING_URL);
+    signalingTimeoutHandle = setTimeout(() => {
+      if (ws?.readyState === WebSocket.CONNECTING) {
+        ws.close();
+        resetAfterPeerDisconnect("o servidor demorou para responder");
+      }
+    }, 12000);
 
     ws.addEventListener("open", () => {
+      clearTimeout(signalingTimeoutHandle);
+      signalingTimeoutHandle = null;
       ws.send(JSON.stringify({ type: "join", room: roomId }));
     });
 
     ws.addEventListener("message", async (event) => {
-      const msg = JSON.parse(event.data);
+      let msg;
+      try {
+        msg = JSON.parse(event.data);
+      } catch {
+        return;
+      }
 
-      switch (msg.type) {
-        case "joined":
-          isInitiator = msg.isInitiator;
-          break;
+      try {
+        switch (msg.type) {
+          case "joined":
+            isInitiator = msg.isInitiator;
+            break;
 
-        case "room-full":
-          entryError.textContent =
-            "essa sessão já está com duas pessoas. Tente novamente mais tarde.";
-          entryError.hidden = false;
-          cleanupAndReset();
-          showScreen(screenEntry);
-          btnEnter.disabled = false;
-          btnEnter.querySelector("span").textContent = "conectar";
-          break;
+          case "room-full":
+            entryError.textContent =
+              "essa sessão já está com duas pessoas. Tente novamente mais tarde.";
+            entryError.hidden = false;
+            cleanupAndReset();
+            showScreen(screenEntry);
+            btnEnter.disabled = false;
+            btnEnter.querySelector("span").textContent = "conectar";
+            entryHint.textContent = "A sessão começa quando os dois entrarem.";
+            break;
 
-        case "peer-ready":
-          startCall();
-          if (isInitiator) await makeOffer();
-          break;
+          case "peer-ready":
+            startCall();
+            if (isInitiator) await makeOffer();
+            break;
 
-        case "offer":
-          await handleOffer(msg.sdp);
-          break;
+          case "offer":
+            await handleOffer(msg.sdp);
+            break;
 
-        case "answer":
-          await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
-          while (pendingIceCandidates.length) {
-            await pc.addIceCandidate(pendingIceCandidates.shift());
-          }
-          break;
-
-        case "ice-candidate":
-          if (msg.candidate) {
-            try {
-              const candidate = new RTCIceCandidate(msg.candidate);
-              if (pc?.remoteDescription) {
-                await pc.addIceCandidate(candidate);
-              } else {
-                pendingIceCandidates.push(candidate);
-              }
-            } catch {
-              /* candidato tardio, ignora */
+          case "answer":
+            await pc.setRemoteDescription(new RTCSessionDescription(msg.sdp));
+            while (pendingIceCandidates.length) {
+              await pc.addIceCandidate(pendingIceCandidates.shift());
             }
-          }
-          break;
+            break;
 
-        case "peer-left":
-          resetAfterPeerDisconnect("ela saiu da sessão");
-          break;
+          case "ice-candidate":
+            if (msg.candidate) {
+              try {
+                const candidate = new RTCIceCandidate(msg.candidate);
+                if (pc?.remoteDescription) {
+                  await pc.addIceCandidate(candidate);
+                } else {
+                  pendingIceCandidates.push(candidate);
+                }
+              } catch {
+                /* candidato tardio, ignora */
+              }
+            }
+            break;
+
+          case "peer-left":
+            resetAfterPeerDisconnect("ela saiu da sessão");
+            break;
+        }
+      } catch {
+        resetAfterPeerDisconnect("não foi possível estabelecer a conexão");
+      }
+    });
+
+    ws.addEventListener("error", () => {
+      if (screenCall.hidden) {
+        resetAfterPeerDisconnect("não foi possível conectar ao servidor");
+      } else {
+        toast("conexão com o servidor perdida");
       }
     });
 
@@ -285,8 +197,9 @@
     showScreen(screenEntry);
     btnEnter.disabled = false;
     btnEnter.querySelector("span").textContent = "conectar";
-    entryError.hidden = true;
-    if (message) toast(message);
+    entryHint.textContent = "A sessão começa quando os dois entrarem.";
+    entryError.textContent = message || "";
+    entryError.hidden = !message;
   }
 
   document.addEventListener("visibilitychange", () => {
@@ -301,9 +214,8 @@
   }
 
   // ---------- WebRTC ----------
-  // Sempre cria transceivers de áudio e vídeo, MESMO sem câmera/mic locais.
-  // Isso garante que dá pra ligar a tela compartilhada depois (via replaceTrack)
-  // sem precisar ter tido uma câmera desde o início.
+  // Os transceivers permitem iniciar o compartilhamento depois que a conexão
+  // já estiver estabelecida, sem capturar dispositivos locais.
   async function createPeerConnection() {
     pc = new RTCPeerConnection({ iceServers: cfg.ICE_SERVERS });
 
@@ -315,13 +227,6 @@
     });
     audioSender = audioTransceiver.sender;
     videoSender = videoTransceiver.sender;
-
-    if (localStream) {
-      const aTrack = localStream.getAudioTracks()[0];
-      const vTrack = localStream.getVideoTracks()[0];
-      if (aTrack) await audioSender.replaceTrack(aTrack);
-      if (vTrack) await videoSender.replaceTrack(vTrack);
-    }
 
     pc.addEventListener("icecandidate", (e) => {
       if (e.candidate) send({ type: "ice-candidate", candidate: e.candidate });
@@ -419,21 +324,7 @@
   });
 
   // ---------- controles ----------
-  btnMic.addEventListener("click", () => {
-    if (!hasAudio || !localStream) return;
-    micOn = !micOn;
-    localStream.getAudioTracks().forEach((t) => (t.enabled = micOn));
-    btnMic.setAttribute("aria-pressed", String(micOn));
-  });
-
   btnAudio.addEventListener("click", unlockRemoteAudio);
-
-  btnCam.addEventListener("click", () => {
-    if (!hasVideo || !localStream) return;
-    camOn = !camOn;
-    localStream.getVideoTracks().forEach((t) => (t.enabled = camOn));
-    btnCam.setAttribute("aria-pressed", String(camOn));
-  });
 
   btnShare.addEventListener("click", async () => {
     if (!navigator.mediaDevices.getDisplayMedia) {
@@ -444,12 +335,17 @@
     }
 
     if (!sharing) {
+      btnShare.disabled = true;
       try {
         screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
           audio: true,
         });
-      } catch {
+      } catch (error) {
+        if (error?.name !== "AbortError") {
+          toast("não foi possível iniciar o compartilhamento");
+        }
+        btnShare.disabled = false;
         return; // usuário cancelou o seletor de tela
       }
 
@@ -458,23 +354,33 @@
         toast("conexão ainda não está pronta");
         screenStream.getTracks().forEach((track) => track.stop());
         screenStream = null;
+        btnShare.disabled = false;
         return;
       }
-      await videoSender.replaceTrack(screenTrack);
-      await shareScreenAudioOnly();
+      try {
+        await videoSender.replaceTrack(screenTrack);
+        await shareScreenAudioOnly();
 
-      localVideo.srcObject = screenStream;
-      localVideo.hidden = false;
+        screenTrack.addEventListener("ended", stopSharing);
 
-      screenTrack.addEventListener("ended", stopSharing);
-
-      sharing = true;
-      btnShare.setAttribute("aria-pressed", "true");
-      shareLabel.textContent = "parar compartilhar";
-      toast("compartilhando sua tela");
-      await makeOffer();
+        sharing = true;
+        btnShare.setAttribute("aria-pressed", "true");
+        shareLabel.textContent = "parar compartilhar";
+        toast("compartilhando sua tela");
+        await makeOffer();
+      } catch {
+        await stopSharing();
+        toast("não foi possível transmitir sua tela");
+      } finally {
+        btnShare.disabled = false;
+      }
     } else {
-      stopSharing();
+      btnShare.disabled = true;
+      try {
+        await stopSharing();
+      } finally {
+        btnShare.disabled = false;
+      }
     }
   });
 
@@ -496,14 +402,11 @@
     if (screenStream) screenStream.getTracks().forEach((t) => t.stop());
     screenStream = null;
 
-    const cameraTrack =
-      hasVideo && localStream ? localStream.getVideoTracks()[0] : null;
     if (videoSender) {
-      await videoSender.replaceTrack(cameraTrack || null);
+      await videoSender.replaceTrack(null);
     }
     if (audioSender) {
-      const microphoneTrack = localStream?.getAudioTracks()[0] || null;
-      await audioSender.replaceTrack(microphoneTrack);
+      await audioSender.replaceTrack(null);
     }
     if (shareAudioContext) {
       await shareAudioContext.close();
@@ -513,14 +416,6 @@
 
     if (videoSender) {
       await makeOffer();
-    }
-
-    if (cameraTrack) {
-      localVideo.srcObject = localStream;
-      localVideo.hidden = false;
-    } else {
-      localVideo.srcObject = null;
-      localVideo.hidden = true; // sem câmera - não tem o que mostrar no PIP agora
     }
 
     sharing = false;
@@ -559,13 +454,28 @@
 
   function cleanupAndReset() {
     clearInterval(timerHandle);
+    clearTimeout(signalingTimeoutHandle);
+    signalingTimeoutHandle = null;
     hideCallControls();
     if (pc) pc.close();
-    if (localStream) localStream.getTracks().forEach((t) => t.stop());
     if (screenStream) screenStream.getTracks().forEach((t) => t.stop());
+    if (shareAudioContext) shareAudioContext.close();
     if (ws) ws.close();
     pc = null;
     ws = null;
+    remoteStream = null;
+    screenStream = null;
+    shareAudioContext = null;
+    mixedAudioTrack = null;
+    audioSender = null;
+    videoSender = null;
+    pendingIceCandidates.length = 0;
+    sharing = false;
+    btnShare.disabled = false;
+    btnShare.setAttribute("aria-pressed", "false");
+    shareLabel.textContent = "compartilhar tela";
+    remoteVideo.srcObject = null;
+    remoteAudio.srcObject = null;
   }
 
   // registra o service worker (deixa o app instalável / abrindo rápido)

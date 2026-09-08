@@ -1,7 +1,9 @@
-# Sessão — chamada + tela compartilhada, só pra vocês dois
+# Sessão — tela compartilhada, só pra vocês dois
 
 App em formato PWA (Progressive Web App): ela instala como se fosse um app de
-verdade, sem passar pela App Store e sem custo nenhum.
+verdade, sem passar pela App Store e sem custo nenhum. A sessão não usa câmera
+nem microfone; apenas o compartilhamento de tela e, quando selecionado, o áudio
+da aba compartilhada.
 
 **Importante sobre iOS:** compartilhar tela pelo navegador só funciona em quem
 compartilha (você, no PC/Android). Quem só assiste — ela, no iPhone — funciona
@@ -74,7 +76,9 @@ Sem isso, a chamada pode falhar quando um de vocês estiver em rede 4G/5G
    ou nome.
 3. Quem entrar primeiro fica na tela de espera; quando a segunda pessoa entra,
    a chamada liga sozinha.
-4. O botão de compartilhar tela funciona para quem estiver no PC/Android.
+4. O botão de compartilhar tela funciona para quem estiver no PC/Android. Ao
+   compartilhar uma aba, marque a opção de compartilhar o áudio se quiser
+   transmitir o som do filme.
 
 Para trocar a sala, altere `fixedRoomId` em `frontend/app.js` e publique o
 frontend novamente.

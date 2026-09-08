@@ -6,9 +6,9 @@
       name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
     />
-    <title>Sessão — chamada + tela compartilhada</title>
+    <title>Sessão — tela compartilhada</title>
     <meta name="theme-color" content="#100D0B" />
-    <meta name="description" content="Ligue e assista junto, à distância." />
+    <meta name="description" content="Assista junto, à distância." />
     <link rel="manifest" href="manifest.json" />
     <link rel="apple-touch-icon" href="icons/icon-192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -43,7 +43,7 @@
         </button>
 
         <p id="entry-hint" class="hint">
-          A chamada começa quando os dois entrarem. Câmera é opcional.
+          A sessão começa quando os dois entrarem.
         </p>
         <p id="entry-error" class="hint hint-error" hidden></p>
 
@@ -78,8 +78,8 @@
         <p class="eyebrow">sala "<span id="waiting-room-name"></span>"</p>
         <h2 class="marquee-title small">aguardando<br />a outra pessoa…</h2>
         <p class="hint">
-          Deixa a aba aberta. Assim que ela entrar com o mesmo código, a chamada
-          liga sozinha.
+          Deixa a aba aberta. Assim que ela entrar com o mesmo código, a sessão
+          começa sozinha.
         </p>
         <button id="btn-cancel-wait" class="btn-ghost" type="button">
           cancelar
@@ -113,17 +113,9 @@
           <audio id="remote-audio" autoplay playsinline></audio>
           <div id="remote-empty" class="stage-empty">
             <p>
-              a tela dela aparece aqui assim que ela ligar a câmera ou
-              compartilhar algo
+              a tela dela aparece aqui assim que ela compartilhar algo
             </p>
           </div>
-          <video
-            id="local-video"
-            autoplay
-            playsinline
-            muted
-            class="pip"
-          ></video>
           <p id="call-toast" class="call-toast" hidden></p>
         </div>
 
@@ -131,15 +123,6 @@
       </div>
 
       <footer class="control-bar">
-        <button id="btn-mic" class="ctrl" type="button" aria-pressed="true">
-          <svg viewBox="0 0 24 24" width="22" height="22">
-            <path
-              fill="currentColor"
-              d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2Z"
-            />
-          </svg>
-          <span class="ctrl-label">microfone</span>
-        </button>
         <button id="btn-audio" class="ctrl ctrl-audio" type="button" hidden>
           <svg viewBox="0 0 24 24" width="22" height="22">
             <path
@@ -148,15 +131,6 @@
             />
           </svg>
           <span class="ctrl-label">ativar áudio</span>
-        </button>
-        <button id="btn-cam" class="ctrl" type="button" aria-pressed="true">
-          <svg viewBox="0 0 24 24" width="22" height="22">
-            <path
-              fill="currentColor"
-              d="M17 10.5V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2v-3.5l4 4v-11l-4 4Z"
-            />
-          </svg>
-          <span class="ctrl-label">câmera</span>
         </button>
         <button
           id="btn-share"
