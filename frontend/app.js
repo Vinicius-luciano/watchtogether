@@ -106,7 +106,7 @@
         ws.close();
         resetAfterPeerDisconnect("o servidor demorou para responder");
       }
-    }, 12000);
+    }, 60000);
 
     ws.addEventListener("open", () => {
       clearTimeout(signalingTimeoutHandle);
@@ -280,6 +280,7 @@
     callRoomName.textContent = roomId;
     showScreen(screenCall);
     startTimer();
+    toast("vocês estão conectados — compartilhe sua tela para começar", 4500);
     unlockRemoteAudio();
   }
 
