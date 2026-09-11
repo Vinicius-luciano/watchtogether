@@ -8,7 +8,7 @@ const { WebSocketServer } = require("ws");
 const PORT = process.env.PORT || 8080;
 const httpServer = http.createServer((req, res) => {
   res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8" });
-  res.end("watchtogether signaling server is running");
+  res.end("watchtogether signaling server is running v2");
 });
 const wss = new WebSocketServer({ server: httpServer });
 
