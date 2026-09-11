@@ -48,7 +48,7 @@
   const landscapeQuery = window.matchMedia("(orientation: landscape)");
   const controlsVisibleMs = 3000;
   const pendingIceCandidates = [];
-  const fixedRoomId = "vinicius-e-dri";
+  const fixedRoomId = "vinicius-e-dri-v2";
 
   function showScreen(el) {
     [screenEntry, screenWaiting, screenCall].forEach(

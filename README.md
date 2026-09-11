@@ -72,7 +72,7 @@ Sem isso, a chamada pode falhar quando um de vocês estiver em rede 4G/5G
 ## Como usar
 
 1. Cada pessoa abre o app e toca em **conectar**.
-2. A sessão usa a sala fixa `vinicius-e-dri`; não é necessário digitar código
+2. A sessão usa uma sala fixa; não é necessário digitar código
    ou nome.
 3. Quem entrar primeiro fica na tela de espera; quando a segunda pessoa entra,
    a chamada liga sozinha.
