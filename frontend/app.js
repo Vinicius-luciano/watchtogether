@@ -45,6 +45,7 @@
   let signalingTimeoutHandle = null;
   let controlsHideHandle = null;
   let remoteAudioMutedForSharing = false;
+  let remoteAudioWasMutedBeforeSharing = false;
   let secondsElapsed = 0;
   const landscapeQuery = window.matchMedia("(orientation: landscape)");
   const controlsVisibleMs = 3000;
@@ -338,6 +339,9 @@
 
     if (!sharing) {
       btnShare.disabled = true;
+      remoteAudioWasMutedBeforeSharing = remoteAudio.muted;
+      remoteAudio.muted = true;
+      remoteAudioMutedForSharing = true;
       try {
         screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
@@ -347,6 +351,7 @@
         if (error?.name !== "AbortError") {
           toast("não foi possível iniciar o compartilhamento");
         }
+        restoreRemoteAudioAfterSharing();
         btnShare.disabled = false;
         return; // usuário cancelou o seletor de tela
       }
@@ -356,6 +361,7 @@
         toast("conexão ainda não está pronta");
         screenStream.getTracks().forEach((track) => track.stop());
         screenStream = null;
+        restoreRemoteAudioAfterSharing();
         btnShare.disabled = false;
         return;
       }
@@ -416,11 +422,7 @@
       mixedAudioTrack = null;
     }
 
-    if (remoteAudioMutedForSharing) {
-      remoteAudio.muted = false;
-      remoteAudioMutedForSharing = false;
-      unlockRemoteAudio();
-    }
+    restoreRemoteAudioAfterSharing();
 
     if (videoSender) {
       await makeOffer();
@@ -439,12 +441,10 @@
     }
     if (!screenAudioTrack) {
       await audioSender.replaceTrack(null);
+      restoreRemoteAudioAfterSharing();
       toast("selecione uma aba e marque compartilhar áudio", 3000);
       return;
     }
-
-    remoteAudio.muted = true;
-    remoteAudioMutedForSharing = true;
 
     shareAudioContext = new AudioContext();
     const destination = shareAudioContext.createMediaStreamDestination();
@@ -455,6 +455,13 @@
     mixedAudioTrack = destination.stream.getAudioTracks()[0];
     await audioSender.replaceTrack(mixedAudioTrack);
     toast("áudio do filme sendo transmitido pelo site", 2500);
+  }
+
+  function restoreRemoteAudioAfterSharing() {
+    if (!remoteAudioMutedForSharing) return;
+    remoteAudio.muted = remoteAudioWasMutedBeforeSharing;
+    remoteAudioMutedForSharing = false;
+    unlockRemoteAudio();
   }
 
   btnLeave.addEventListener("click", () => {
