@@ -44,6 +44,7 @@
   let timerHandle = null;
   let signalingTimeoutHandle = null;
   let controlsHideHandle = null;
+  let remoteAudioMutedForSharing = false;
   let secondsElapsed = 0;
   const landscapeQuery = window.matchMedia("(orientation: landscape)");
   const controlsVisibleMs = 3000;
@@ -415,6 +416,12 @@
       mixedAudioTrack = null;
     }
 
+    if (remoteAudioMutedForSharing) {
+      remoteAudio.muted = false;
+      remoteAudioMutedForSharing = false;
+      unlockRemoteAudio();
+    }
+
     if (videoSender) {
       await makeOffer();
     }
@@ -435,6 +442,9 @@
       toast("selecione uma aba e marque compartilhar áudio", 3000);
       return;
     }
+
+    remoteAudio.muted = true;
+    remoteAudioMutedForSharing = true;
 
     shareAudioContext = new AudioContext();
     const destination = shareAudioContext.createMediaStreamDestination();
