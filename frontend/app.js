@@ -44,6 +44,8 @@
   let timerHandle = null;
   let signalingTimeoutHandle = null;
   let controlsHideHandle = null;
+  let connectionRecoveryHandle = null;
+  let recoveringConnection = false;
   let remoteAudioMutedForSharing = false;
   let remoteAudioWasMutedBeforeSharing = false;
   let secondsElapsed = 0;
@@ -256,8 +258,38 @@
       if (pc.connectionState === "connected") toast("conectado ✓", 2000);
       if (["disconnected", "failed"].includes(pc.connectionState)) {
         toast("conexão instável…");
+        scheduleConnectionRecovery();
       }
     });
+  }
+
+  function scheduleConnectionRecovery() {
+    clearTimeout(connectionRecoveryHandle);
+    connectionRecoveryHandle = setTimeout(recoverConnection, 5000);
+  }
+
+  async function recoverConnection() {
+    if (
+      recoveringConnection ||
+      !pc ||
+      !ws ||
+      ws.readyState !== WebSocket.OPEN ||
+      !["disconnected", "failed"].includes(pc.connectionState)
+    ) {
+      return;
+    }
+
+    recoveringConnection = true;
+    try {
+      const offer = await pc.createOffer({ iceRestart: true });
+      await pc.setLocalDescription(offer);
+      send({ type: "offer", sdp: offer });
+      toast("tentando recuperar a conexão…", 4000);
+    } catch {
+      toast("não foi possível recuperar a conexão");
+    } finally {
+      recoveringConnection = false;
+    }
   }
 
   async function makeOffer() {
@@ -473,7 +505,10 @@
   function cleanupAndReset() {
     clearInterval(timerHandle);
     clearTimeout(signalingTimeoutHandle);
+    clearTimeout(connectionRecoveryHandle);
     signalingTimeoutHandle = null;
+    connectionRecoveryHandle = null;
+    recoveringConnection = false;
     hideCallControls();
     if (pc) pc.close();
     if (screenStream) screenStream.getTracks().forEach((t) => t.stop());
