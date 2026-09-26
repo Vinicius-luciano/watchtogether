@@ -115,7 +115,15 @@ wss.on("connection", (ws) => {
 
     // repassa offer / answer / ice-candidate / chat / sync para o outro peer da sala
     if (
-      ["offer", "answer", "ice-candidate", "chat", "sync", "leave"].includes(
+      [
+        "offer",
+        "answer",
+        "ice-candidate",
+        "chat",
+        "reaction",
+        "sync",
+        "leave",
+      ].includes(
         msg.type,
       )
     ) {

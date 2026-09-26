@@ -44,6 +44,9 @@
         <button id="btn-copy-invite" class="btn-ghost" type="button">
           copiar convite
         </button>
+        <button id="btn-reconnect" class="btn-ghost btn-reconnect" type="button" hidden>
+          reconectar agora
+        </button>
 
         <p id="entry-hint" class="hint">
           A sessão começa quando os dois entrarem.
@@ -128,6 +131,33 @@
         <div class="perforation" aria-hidden="true"></div>
       </div>
 
+      <aside id="chat-panel" class="chat-panel" hidden>
+        <div class="chat-head">
+          <div>
+            <span class="eyebrow">sala privada</span>
+            <h2>recados rápidos</h2>
+          </div>
+          <button id="btn-close-chat" class="icon-button" type="button" aria-label="fechar chat">×</button>
+        </div>
+        <div id="chat-messages" class="chat-messages" aria-live="polite">
+          <p class="chat-empty">mandem uma mensagem sem interromper o filme.</p>
+        </div>
+        <div class="reaction-row" aria-label="reações">
+          <button class="reaction-button" type="button" data-reaction="❤️">❤️</button>
+          <button class="reaction-button" type="button" data-reaction="😂">😂</button>
+          <button class="reaction-button" type="button" data-reaction="😮">😮</button>
+          <button class="reaction-button" type="button" data-reaction="👍">👍</button>
+        </div>
+        <form id="chat-form" class="chat-form">
+          <input id="chat-input" type="text" maxlength="240" autocomplete="off" placeholder="escreva um recado…" />
+          <button type="submit" class="send-button" aria-label="enviar mensagem">enviar</button>
+        </form>
+        <label class="volume-control" for="remote-volume">
+          <span>volume da chamada</span>
+          <input id="remote-volume" type="range" min="0" max="1" step="0.05" value="1" />
+        </label>
+      </aside>
+
       <footer class="control-bar">
         <button id="btn-audio" class="ctrl ctrl-audio" type="button" hidden>
           <svg viewBox="0 0 24 24" width="22" height="22">
@@ -169,6 +199,12 @@
             />
           </svg>
           <span class="ctrl-label">janela flutuante</span>
+        </button>
+        <button id="btn-chat" class="ctrl" type="button" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+            <path fill="currentColor" d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-5 3v-3a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm2 5v2h12V9H6Zm0 4v2h8v-2H6Z" />
+          </svg>
+          <span class="ctrl-label">chat</span>
         </button>
         <button id="btn-leave" class="ctrl ctrl-danger" type="button">
           <svg viewBox="0 0 24 24" width="22" height="22">

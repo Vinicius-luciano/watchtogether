@@ -10,6 +10,7 @@
 
   const btnEnter = document.getElementById("btn-enter");
   const btnCopyInvite = document.getElementById("btn-copy-invite");
+  const btnReconnect = document.getElementById("btn-reconnect");
   const entryHint = document.getElementById("entry-hint");
   const entryError = document.getElementById("entry-error");
 
@@ -24,11 +25,18 @@
   const remoteAudio = document.getElementById("remote-audio");
   const remoteEmpty = document.getElementById("remote-empty");
   const callToast = document.getElementById("call-toast");
+  const chatPanel = document.getElementById("chat-panel");
+  const chatMessages = document.getElementById("chat-messages");
+  const chatForm = document.getElementById("chat-form");
+  const chatInput = document.getElementById("chat-input");
+  const remoteVolume = document.getElementById("remote-volume");
 
   const btnAudio = document.getElementById("btn-audio");
   const btnShare = document.getElementById("btn-share");
   const btnFullscreen = document.getElementById("btn-fullscreen");
   const btnPip = document.getElementById("btn-pip");
+  const btnChat = document.getElementById("btn-chat");
+  const btnCloseChat = document.getElementById("btn-close-chat");
   const shareLabel = document.getElementById("share-label");
   const btnLeave = document.getElementById("btn-leave");
 
@@ -119,6 +127,7 @@
   // ---------- fluxo de entrada ----------
   async function enterSession() {
     entryError.hidden = true;
+    btnReconnect.hidden = true;
     roomId = fixedRoomId;
     btnEnter.disabled = true;
     btnEnter.querySelector("span").textContent = "conectando…";
@@ -130,6 +139,40 @@
   }
 
   btnEnter.addEventListener("click", enterSession);
+  btnReconnect.addEventListener("click", enterSession);
+
+  chatForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const text = chatInput.value.trim();
+    if (!text) return;
+    sendChatMessage(text, "você");
+    send({ type: "chat", text });
+    chatInput.value = "";
+  });
+
+  document.querySelectorAll(".reaction-button").forEach((button) => {
+    button.addEventListener("click", () => {
+      const reaction = button.dataset.reaction;
+      appendChatMessage(reaction, "você", "reaction");
+      send({ type: "reaction", reaction });
+    });
+  });
+
+  btnChat.addEventListener("click", () => {
+    const isOpen = !chatPanel.hidden;
+    chatPanel.hidden = isOpen;
+    btnChat.setAttribute("aria-pressed", String(!isOpen));
+    if (!isOpen) chatInput.focus();
+  });
+
+  btnCloseChat.addEventListener("click", () => {
+    chatPanel.hidden = true;
+    btnChat.setAttribute("aria-pressed", "false");
+  });
+
+  remoteVolume.addEventListener("input", () => {
+    remoteAudio.volume = Number(remoteVolume.value);
+  });
 
   btnCopyInvite.addEventListener("click", async () => {
     try {
@@ -145,6 +188,7 @@
     showScreen(screenEntry);
     btnEnter.disabled = false;
     btnEnter.querySelector("span").textContent = "conectar";
+    btnReconnect.hidden = true;
     entryHint.textContent = "A sessão começa quando os dois entrarem.";
   });
 
@@ -191,6 +235,7 @@
             showScreen(screenEntry);
             btnEnter.disabled = false;
             btnEnter.querySelector("span").textContent = "conectar";
+            btnReconnect.hidden = false;
             entryHint.textContent = "A sessão começa quando os dois entrarem.";
             break;
 
@@ -226,6 +271,14 @@
             }
             break;
 
+          case "chat":
+            appendChatMessage(msg.text, "ela");
+            break;
+
+          case "reaction":
+            appendChatMessage(msg.reaction, "ela", "reaction");
+            break;
+
           case "peer-left":
             setConnectionStatus("offline");
             resetAfterPeerDisconnect("ela saiu da sessão");
@@ -258,6 +311,7 @@
     showScreen(screenEntry);
     btnEnter.disabled = false;
     btnEnter.querySelector("span").textContent = "conectar";
+    btnReconnect.hidden = !message;
     entryHint.textContent = "A sessão começa quando os dois entrarem.";
     entryError.textContent = message || "";
     entryError.hidden = !message;
@@ -273,6 +327,28 @@
 
   function send(msg) {
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(msg));
+  }
+
+  function appendChatMessage(text, author, kind = "message") {
+    const emptyMessage = chatMessages.querySelector(".chat-empty");
+    emptyMessage?.remove();
+    const item = document.createElement("div");
+    item.className = `chat-message ${kind}`;
+    const authorLabel = document.createElement("span");
+    authorLabel.className = "chat-author";
+    authorLabel.textContent = author;
+    const body = document.createElement("span");
+    body.className = "chat-body";
+    body.textContent = text;
+    item.append(authorLabel, body);
+    chatMessages.appendChild(item);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function sendChatMessage(text, author) {
+    appendChatMessage(text, author);
+    chatPanel.hidden = false;
+    btnChat.setAttribute("aria-pressed", "true");
   }
 
   // ---------- WebRTC ----------
