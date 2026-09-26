@@ -26,6 +26,7 @@
   const btnAudio = document.getElementById("btn-audio");
   const btnShare = document.getElementById("btn-share");
   const btnFullscreen = document.getElementById("btn-fullscreen");
+  const btnPip = document.getElementById("btn-pip");
   const shareLabel = document.getElementById("share-label");
   const btnLeave = document.getElementById("btn-leave");
 
@@ -456,6 +457,33 @@
     }
 
     await (stage.requestFullscreen?.() || remoteVideo.requestFullscreen?.());
+  });
+
+  btnPip.addEventListener("click", async () => {
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+        return;
+      }
+
+      if (remoteVideo.webkitSetPresentationMode) {
+        remoteVideo.webkitSetPresentationMode(
+          remoteVideo.webkitPresentationMode === "picture-in-picture"
+            ? "inline"
+            : "picture-in-picture",
+        );
+        return;
+      }
+
+      if (remoteVideo.requestPictureInPicture) {
+        await remoteVideo.requestPictureInPicture();
+        return;
+      }
+
+      toast("janela flutuante não é compatível neste navegador");
+    } catch {
+      toast("não foi possível abrir a janela flutuante");
+    }
   });
 
   async function stopSharing() {
