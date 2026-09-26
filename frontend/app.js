@@ -461,6 +461,13 @@
 
   btnPip.addEventListener("click", async () => {
     try {
+      if (!remoteVideo.srcObject) {
+        toast("o vídeo ainda não está disponível");
+        return;
+      }
+
+      await remoteVideo.play();
+
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture();
         return;
@@ -475,7 +482,7 @@
         return;
       }
 
-      if (remoteVideo.requestPictureInPicture) {
+      if (document.pictureInPictureEnabled && remoteVideo.requestPictureInPicture) {
         await remoteVideo.requestPictureInPicture();
         return;
       }
