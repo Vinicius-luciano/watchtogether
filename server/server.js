@@ -31,9 +31,9 @@ function removePeer(ws) {
 }
 
 function removeStalePeers(peers) {
-  const staleBefore = Date.now() - 60000;
+  const staleBefore = Date.now() - 45000;
   for (const peer of peers) {
-    if (peer.lastPongAt < staleBefore || peer.readyState !== 1) {
+    if (peer.lastActivityAt < staleBefore || peer.readyState !== 1) {
       removePeer(peer);
       peer.terminate();
     }
@@ -48,12 +48,11 @@ wss.on("connection", (ws) => {
   ws.roomId = null;
   ws.isAlive = true;
   ws.missedPings = 0;
-  ws.lastPongAt = Date.now();
+  ws.lastActivityAt = Date.now();
 
   ws.on("pong", () => {
     ws.isAlive = true;
     ws.missedPings = 0;
-    ws.lastPongAt = Date.now();
   });
 
   ws.on("message", (raw) => {
@@ -64,7 +63,10 @@ wss.on("connection", (ws) => {
       return; // ignora mensagem malformada
     }
 
-    if (msg.type === "heartbeat") return;
+    if (msg.type === "heartbeat") {
+      ws.lastActivityAt = Date.now();
+      return;
+    }
 
     if (msg.type === "join") {
       const roomId = String(msg.room || "").trim();
