@@ -10,9 +10,11 @@
 
   const btnEnter = document.getElementById("btn-enter");
   const btnCopyInvite = document.getElementById("btn-copy-invite");
+  const btnDiagnostics = document.getElementById("btn-diagnostics");
   const btnReconnect = document.getElementById("btn-reconnect");
   const entryHint = document.getElementById("entry-hint");
   const entryError = document.getElementById("entry-error");
+  const diagnosticOutput = document.getElementById("diagnostic-output");
 
   const waitingRoomName = document.getElementById("waiting-room-name");
   const btnCancelWait = document.getElementById("btn-cancel-wait");
@@ -181,6 +183,41 @@
     } catch {
       entryHint.textContent = "copie o link desta página e envie para ela.";
     }
+  });
+
+  btnDiagnostics.addEventListener("click", async () => {
+    btnDiagnostics.disabled = true;
+    btnDiagnostics.textContent = "testando…";
+    const results = [];
+    const startedAt = performance.now();
+    try {
+      await new Promise((resolve, reject) => {
+        const socket = new WebSocket(cfg.SIGNALING_URL);
+        const timeout = setTimeout(() => {
+          socket.close();
+          reject(new Error("timeout"));
+        }, 8000);
+        socket.addEventListener("open", () => {
+          clearTimeout(timeout);
+          socket.close();
+          resolve();
+        });
+        socket.addEventListener("error", () => {
+          clearTimeout(timeout);
+          reject(new Error("socket"));
+        });
+      });
+      results.push(`servidor: ok (${Math.round(performance.now() - startedAt)} ms)`);
+    } catch {
+      results.push("servidor: indisponível");
+    }
+    results.push(`WebRTC: ${"RTCPeerConnection" in window ? "ok" : "indisponível"}`);
+    results.push(`Wake Lock: ${"wakeLock" in navigator ? "disponível" : "indisponível"}`);
+    results.push(`PiP: ${document.pictureInPictureEnabled ? "disponível" : "limitado neste navegador"}`);
+    diagnosticOutput.textContent = results.join(" · ");
+    diagnosticOutput.hidden = false;
+    btnDiagnostics.disabled = false;
+    btnDiagnostics.textContent = "testar conexão";
   });
 
   btnCancelWait.addEventListener("click", () => {

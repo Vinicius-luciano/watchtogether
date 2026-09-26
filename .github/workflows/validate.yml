@@ -1,0 +1,34 @@
+name: Validate WatchTogether
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Check JavaScript syntax
+        run: |
+          node --check frontend/app.js
+          node --check frontend/config.js
+          node --check frontend/sw.js
+          node --check server/server.js
+
+      - name: Install server dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Check server package
+        working-directory: server
+        run: npm audit --audit-level=high
