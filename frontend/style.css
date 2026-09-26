@@ -283,6 +283,16 @@ input {
 .marquee-status .sep {
   opacity: 0.4;
 }
+#call-status {
+  color: var(--gold);
+}
+#call-status[data-state="reconectando"],
+#call-status[data-state="instável"] {
+  color: #e8836f;
+}
+#call-status[data-state="offline"] {
+  color: var(--cream-dim);
+}
 .dot-live {
   width: 7px;
   height: 7px;

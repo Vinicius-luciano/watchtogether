@@ -9,6 +9,7 @@
   const screenCall = document.getElementById("screen-call");
 
   const btnEnter = document.getElementById("btn-enter");
+  const btnCopyInvite = document.getElementById("btn-copy-invite");
   const entryHint = document.getElementById("entry-hint");
   const entryError = document.getElementById("entry-error");
 
@@ -17,6 +18,7 @@
 
   const callRoomName = document.getElementById("call-room-name");
   const callTimer = document.getElementById("call-timer");
+  const callStatus = document.getElementById("call-status");
   const stage = screenCall.querySelector(".stage");
   const remoteVideo = document.getElementById("remote-video");
   const remoteAudio = document.getElementById("remote-audio");
@@ -48,6 +50,7 @@
   let connectionRecoveryHandle = null;
   let recoveringConnection = false;
   let signalingHeartbeatHandle = null;
+  let wakeLockHandle = null;
   let remoteAudioMutedForSharing = false;
   let remoteAudioWasMutedBeforeSharing = false;
   let secondsElapsed = 0;
@@ -79,6 +82,28 @@
     toast._t = setTimeout(() => (callToast.hidden = true), ms);
   }
 
+  function setConnectionStatus(status) {
+    callStatus.textContent = status;
+    callStatus.dataset.state = status;
+  }
+
+  async function requestWakeLock() {
+    if (!("wakeLock" in navigator) || document.visibilityState !== "visible") {
+      return;
+    }
+    try {
+      wakeLockHandle = await navigator.wakeLock.request("screen");
+    } catch {
+      wakeLockHandle = null;
+    }
+  }
+
+  function releaseWakeLock() {
+    if (!wakeLockHandle) return;
+    wakeLockHandle.release().catch(() => {});
+    wakeLockHandle = null;
+  }
+
   async function unlockRemoteAudio() {
     if (!remoteVideo.srcObject) return;
     remoteVideo.muted = true;
@@ -106,6 +131,15 @@
 
   btnEnter.addEventListener("click", enterSession);
 
+  btnCopyInvite.addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText(location.href);
+      entryHint.textContent = "convite copiado — é só enviar o link para ela.";
+    } catch {
+      entryHint.textContent = "copie o link desta página e envie para ela.";
+    }
+  });
+
   btnCancelWait.addEventListener("click", () => {
     cleanupAndReset();
     showScreen(screenEntry);
@@ -125,6 +159,7 @@
     }, 60000);
 
     ws.addEventListener("open", () => {
+      setConnectionStatus("conectando");
       clearTimeout(signalingTimeoutHandle);
       signalingTimeoutHandle = null;
       clearInterval(signalingHeartbeatHandle);
@@ -160,6 +195,7 @@
             break;
 
           case "peer-ready":
+            setConnectionStatus("conectado");
             startCall();
             if (isInitiator) await makeOffer();
             break;
@@ -191,6 +227,7 @@
             break;
 
           case "peer-left":
+            setConnectionStatus("offline");
             resetAfterPeerDisconnect("ela saiu da sessão");
             break;
         }
@@ -200,6 +237,7 @@
     });
 
     ws.addEventListener("error", () => {
+      setConnectionStatus("instável");
       if (screenCall.hidden) {
         resetAfterPeerDisconnect("não foi possível conectar ao servidor");
       } else {
@@ -208,6 +246,7 @@
     });
 
     ws.addEventListener("close", () => {
+      setConnectionStatus("offline");
       clearInterval(signalingHeartbeatHandle);
       signalingHeartbeatHandle = null;
       if (!screenCall.hidden) resetAfterPeerDisconnect("conexão encerrada");
@@ -226,6 +265,7 @@
 
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState !== "visible" || screenCall.hidden) return;
+    requestWakeLock();
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       resetAfterPeerDisconnect("conexão encerrada — conecte novamente");
     }
@@ -273,8 +313,12 @@
     });
 
     pc.addEventListener("connectionstatechange", () => {
-      if (pc.connectionState === "connected") toast("conectado ✓", 2000);
+      if (pc.connectionState === "connected") {
+        setConnectionStatus("conectado");
+        toast("conectado ✓", 2000);
+      }
       if (["disconnected", "failed"].includes(pc.connectionState)) {
+        setConnectionStatus("reconectando");
         toast("conexão instável…");
         scheduleConnectionRecovery();
       }
@@ -333,8 +377,10 @@
 
   function startCall() {
     callRoomName.textContent = roomId;
+    setConnectionStatus("conectado");
     showScreen(screenCall);
     startTimer();
+    requestWakeLock();
     toast("vocês estão conectados — compartilhe sua tela para começar", 4500);
     unlockRemoteAudio();
   }
@@ -562,6 +608,7 @@
     clearTimeout(signalingTimeoutHandle);
     clearTimeout(connectionRecoveryHandle);
     clearInterval(signalingHeartbeatHandle);
+    releaseWakeLock();
     signalingTimeoutHandle = null;
     connectionRecoveryHandle = null;
     signalingHeartbeatHandle = null;
