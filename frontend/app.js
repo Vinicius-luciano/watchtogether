@@ -46,6 +46,7 @@
   let controlsHideHandle = null;
   let connectionRecoveryHandle = null;
   let recoveringConnection = false;
+  let signalingHeartbeatHandle = null;
   let remoteAudioMutedForSharing = false;
   let remoteAudioWasMutedBeforeSharing = false;
   let secondsElapsed = 0;
@@ -115,6 +116,10 @@
     ws.addEventListener("open", () => {
       clearTimeout(signalingTimeoutHandle);
       signalingTimeoutHandle = null;
+      clearInterval(signalingHeartbeatHandle);
+      signalingHeartbeatHandle = setInterval(() => {
+        send({ type: "heartbeat" });
+      }, 10000);
       ws.send(JSON.stringify({ type: "join", room: roomId }));
     });
 
@@ -192,6 +197,8 @@
     });
 
     ws.addEventListener("close", () => {
+      clearInterval(signalingHeartbeatHandle);
+      signalingHeartbeatHandle = null;
       if (!screenCall.hidden) resetAfterPeerDisconnect("conexão encerrada");
     });
   }
@@ -289,6 +296,9 @@
       toast("não foi possível recuperar a conexão");
     } finally {
       recoveringConnection = false;
+      if (pc && ["disconnected", "failed"].includes(pc.connectionState)) {
+        scheduleConnectionRecovery();
+      }
     }
   }
 
@@ -506,8 +516,10 @@
     clearInterval(timerHandle);
     clearTimeout(signalingTimeoutHandle);
     clearTimeout(connectionRecoveryHandle);
+    clearInterval(signalingHeartbeatHandle);
     signalingTimeoutHandle = null;
     connectionRecoveryHandle = null;
+    signalingHeartbeatHandle = null;
     recoveringConnection = false;
     hideCallControls();
     if (pc) pc.close();

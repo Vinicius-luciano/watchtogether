@@ -64,6 +64,8 @@ wss.on("connection", (ws) => {
       return; // ignora mensagem malformada
     }
 
+    if (msg.type === "heartbeat") return;
+
     if (msg.type === "join") {
       const roomId = String(msg.room || "").trim();
       if (!roomId) return;
