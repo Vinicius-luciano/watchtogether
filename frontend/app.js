@@ -54,6 +54,16 @@
   const controlsVisibleMs = 3000;
   const pendingIceCandidates = [];
   const fixedRoomId = "vinicius-e-dri-v2";
+  const clientIdKey = "watchtogether-client-id";
+  const clientId = getClientId();
+
+  function getClientId() {
+    const storedId = localStorage.getItem(clientIdKey);
+    if (storedId) return storedId;
+    const newId = crypto.randomUUID();
+    localStorage.setItem(clientIdKey, newId);
+    return newId;
+  }
 
   function showScreen(el) {
     [screenEntry, screenWaiting, screenCall].forEach(
@@ -120,7 +130,7 @@
       signalingHeartbeatHandle = setInterval(() => {
         send({ type: "heartbeat" });
       }, 10000);
-      ws.send(JSON.stringify({ type: "join", room: roomId }));
+      ws.send(JSON.stringify({ type: "join", room: roomId, clientId }));
     });
 
     ws.addEventListener("message", async (event) => {

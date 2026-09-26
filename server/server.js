@@ -68,6 +68,7 @@ wss.on("connection", (ws) => {
 
     if (msg.type === "join") {
       const roomId = String(msg.room || "").trim();
+      const clientId = String(msg.clientId || "").trim();
       if (!roomId) return;
 
       let peers = rooms.get(roomId);
@@ -77,6 +78,14 @@ wss.on("connection", (ws) => {
       }
 
       removeStalePeers(peers);
+
+      for (const peer of peers) {
+        if (clientId && peer.clientId === clientId) {
+          removePeer(peer);
+          peer.terminate();
+        }
+      }
+
       if (peers.size >= 2) {
         ws.send(JSON.stringify({ type: "room-full" }));
         ws.close();
@@ -84,6 +93,7 @@ wss.on("connection", (ws) => {
       }
 
       ws.roomId = roomId;
+      ws.clientId = clientId;
       peers.add(ws);
       log(`peer entrou na sala "${roomId}" (${peers.size}/2)`);
 
